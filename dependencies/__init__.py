@@ -1,5 +1,6 @@
 from fastapi import Depends,HTTPException,status
 
+from core.cache import HRCache
 from models import AsyncSessionFactory,AsyncSession
 from core.auth import AuthHandler
 from models.user import UserModel
@@ -36,3 +37,5 @@ async def get_super_user(
     if  current_user.is_superuser:
         return current_user
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="权限不足,无法访问")
+def get_cache_instance():
+    return HRCache()

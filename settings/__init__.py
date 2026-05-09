@@ -21,7 +21,12 @@ class Settings(BaseSettings):
     # refresh_token：30天过期
     JWT_ACCESS_TOKEN_EXPIRES:timedelta = timedelta(days=365)#JWTtoken过期时间
     JWT_REFRESH_TOKEN_EXPIRES: timedelta = timedelta(days=365)
+    #redis配置
+    REDIS_HOST: str = "127.0.0.1"
+    REDIS_PORT: int = 6379
 
+    #邀请码过期时间
+    INVITE_CODE_EXPIRE: int = 60*60*24*2
     @computed_field
     @property
     def DATABASE_URL(self) -> str:
