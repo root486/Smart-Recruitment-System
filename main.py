@@ -24,7 +24,7 @@ async def lifespan(_: FastAPI):
     await redis.close()
 
 app = FastAPI(lifespan=lifespan)
-app = FastAPI()
+
 #允许跨域
 app.add_middleware(
     CORSMiddleware,
@@ -45,3 +45,5 @@ async def root():
 @app.get("/hello/{name}")
 async def say_hello(name: str):
     return {"message": f"Hello {name}"}
+
+

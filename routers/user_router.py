@@ -1,11 +1,18 @@
-from fastapi import APIRouter,Depends
-from schemas.user_schema import UserLoginSchema,UserLoginRespSchema
-from dependencies import get_session_instance, get_auth_handler,AuthHandler
+from fastapi import APIRouter,Depends,BackgroundTasks
+
+from core.cache import HRCache, InviteInfoSchema
+from schemas.user_schema import UserLoginSchema,UserLoginRespSchema,UserInviteSchema
+from dependencies import get_session_instance, get_auth_handler,AuthHandler,get_cache_instance
+from dependencies import get_super_user
 from models import AsyncSession
-from repository.user_repo import UserRepo
+from repository.user_repo import UserRepo, DepartmentRepo
 from models.user import UserModel
 from fastapi.exceptions import HTTPException
 from fastapi import status
+import string
+import random
+from tasks import send_invite_email_task
+from schemas import ResponseSchema
 
 router =APIRouter (prefix= "/user",tags=["user"])
 
@@ -32,6 +39,40 @@ async def login(
             "refresh_token":tokens["refresh_token"],
             "user":user
         }
+
+@router.post("/invite",summary="邀请用户，会给指定的邮箱发送邮件",response_model=ResponseSchema)
+async def invite(
+        invite_data:UserInviteSchema,
+        background_tasks:BackgroundTasks,#发送邮件时添加后台发送
+        session:AsyncSession = Depends(get_session_instance),
+        cache:HRCache= Depends(get_cache_instance),
+        _:UserModel=Depends(get_super_user)#只有超级用户才可以邀请用户
+):
+    email=invite_data.email
+    department_id=invite_data.department_id
+    #1.先校验这个邮箱在数据库是否已经存在了
+    async with session.begin():
+        user_repo=UserRepo(session)
+        user:UserModel= await user_repo.get_by_email(str(email))
+        if user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="邮箱已被注册")
+
+
+
+    #2.校验department_id在数据库中是否存在
+        department_repo=DepartmentRepo(session)
+        department=await department_repo.get_by_id(department_id)
+        if not department:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="该部门不存在")
+    #3.生成邀请码并转化成字符串
+    invite_code="".join(random.sample(string.digits,6))
+    #4.将邀请信息保存到缓存中
+    await cache.set_invite_info(InviteInfoSchema(email=email,department_id=department_id,invite_code=invite_code))
+    #5.给指定邮箱账号发送邮件
+    background_tasks.add_task(send_invite_email_task,str(email),invite_code=invite_code)
+    return ResponseSchema()
+
+
 
 
 

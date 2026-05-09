@@ -15,7 +15,7 @@ async def send_email_task(message: MessageSchema):
             logger.info("⚠️ 忽略 QQ 邮箱 SMTP 关闭阶段的非标准响应（邮件已成功发送）", enqueue=True)
         else:
             logger.error(f"邮件发送失败！{e}")
-#发送注册邀请邮件
+#发送注册邀请邮件,本系统是邀请制，只有超级用户可邀请新用户，通过注册邀请邮件才可注册
 async def send_invite_email_task(
     email: str,
     invite_code: str
