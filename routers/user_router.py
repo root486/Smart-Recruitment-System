@@ -1,7 +1,11 @@
 from fastapi import APIRouter,Depends,BackgroundTasks
 
 from core.cache import HRCache, InviteInfoSchema
-from schemas.user_schema import UserLoginSchema,UserLoginRespSchema,UserInviteSchema
+from schemas.user_schema import (
+    UserLoginSchema,
+    UserLoginRespSchema,
+    UserInviteSchema,
+    UserRegisterSchema)
 from dependencies import get_session_instance, get_auth_handler,AuthHandler,get_cache_instance
 from dependencies import get_super_user
 from models import AsyncSession
@@ -13,6 +17,7 @@ import string
 import random
 from tasks import send_invite_email_task
 from schemas import ResponseSchema
+
 
 router =APIRouter (prefix= "/user",tags=["user"])
 
@@ -71,6 +76,38 @@ async def invite(
     #5.给指定邮箱账号发送邮件
     background_tasks.add_task(send_invite_email_task,str(email),invite_code=invite_code)
     return ResponseSchema()
+@router.post("/register",summary="注册")
+async def register(
+        register_data:UserRegisterSchema,
+        session:AsyncSession = Depends(get_session_instance),
+        cache:HRCache= Depends(get_cache_instance)
+):
+    #1. 校验邮箱和验证码是否正确
+    email=register_data.email
+    invite_info:InviteInfoSchema=await cache.get_invite_info(str(email))
+    if not invite_info:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="该邮箱账号不存在")
+    if invite_info.invite_code!=register_data.invite_code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="邀请码错误")
+    async with session.begin():
+        #3.校验邮箱是否已经注册
+        user_repo=UserRepo(session)
+        user:UserModel=await user_repo.get_by_email(str(email))
+        if user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="该邮箱已被注册")
+        #4.创建用户
+        user=await user_repo.create_user(
+            {
+                "email":email,
+                "username":register_data.username,
+                "realname":register_data.realname,
+                "password":register_data.password,
+                "department_id":invite_info.department_id
+            }
+        )
+    return ResponseSchema()
+
+
 
 
 
