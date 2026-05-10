@@ -6,12 +6,13 @@ from schemas.user_schema import (
     UserLoginRespSchema,
     UserInviteSchema,
     UserRegisterSchema,
-    UserListRespSchema)
+    UserListRespSchema,
+    UserStatusUpdateSchema)
 from dependencies import get_session_instance, get_auth_handler,AuthHandler,get_cache_instance
 from dependencies import get_super_user
 from models import AsyncSession
 from repository.user_repo import UserRepo, DepartmentRepo
-from models.user import UserModel
+from models.user import UserModel, UserStatus
 from fastapi.exceptions import HTTPException
 from fastapi import status
 import string
@@ -38,7 +39,10 @@ async def login(
         #2.验证密码是否正确
         if not user.check_password(login_data.password):
             raise HTTPException(status.HTTP_400_BAD_REQUEST,detail="密码错误")
-        #3.确认用户存在，密码正确后，生成JWT token
+        #3.判断员工状态是否可用
+        if user.status!=UserStatus.ACTIVE:
+            raise HTTPException(status.HTTP_403_FORBIDDEN,detail="该员工状态不可用，请联系管理员")
+        #4.确认用户存在，密码正确后，生成JWT token
         tokens=auth_handler.encode_login_token(user.id)
         return {
             "access_token":tokens["access_token"],
@@ -122,7 +126,22 @@ async def user_list(
     return  {"users": users}
 
 
+@router.patch("/status/update",summary="修改员工状态",response_model=ResponseSchema)
+async def update_status(
+        status_data:UserStatusUpdateSchema,#修改员工状态需要传入的数据
+        session:AsyncSession=Depends(get_session_instance),
+        _:UserModel=Depends(get_super_user)
 
+):
+    async with session.begin():
+        user_repo=UserRepo(session)
+        user:UserModel=await user_repo.get_by_id(status_data.user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="该员工不存在")
+        if user.is_superuser:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="不能修改超级用户的状态")
+        user.status=status_data.status
+    return ResponseSchema()
 
 
 
