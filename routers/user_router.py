@@ -7,8 +7,9 @@ from schemas.user_schema import (
     UserInviteSchema,
     UserRegisterSchema,
     UserListRespSchema,
-    UserStatusUpdateSchema)
-from dependencies import get_session_instance, get_auth_handler,AuthHandler,get_cache_instance
+    UserStatusUpdateSchema,
+    DepartmentListRespSchema)
+from dependencies import get_session_instance, get_auth_handler, AuthHandler, get_cache_instance, get_current_user
 from dependencies import get_super_user
 from models import AsyncSession
 from repository.user_repo import UserRepo, DepartmentRepo
@@ -142,6 +143,19 @@ async def update_status(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="不能修改超级用户的状态")
         user.status=status_data.status
     return ResponseSchema()
+
+@router.get("/department/list",summary="获取所有部门列表",response_model=DepartmentListRespSchema)
+async def department_list(
+        session:AsyncSession = Depends(get_session_instance),
+        _:str=Depends(get_current_user)
+):
+    async with session.begin():
+        department_repo=DepartmentRepo(session)
+        departments= await department_repo.get_department_list()
+        return {"departments":departments}
+
+
+
 
 
 
