@@ -12,10 +12,15 @@ class InviteInfoSchema(BaseModel):
     department_id:str
     invite_code:str
 
+class DingTalkTokenInfoSchema(BaseModel):
+    access_token:str
+    refresh_token:str
+    user_id:str
 
 
 class HRCache(metaclass=SingletonMeta):
     invite_prefix = "invite:"
+    dingtalk_prefix = "dingtalk:"
 
     def __init__(self):
         self.cache_backend: RedisBackend = FastAPICache.get_backend()
@@ -41,3 +46,11 @@ class HRCache(metaclass=SingletonMeta):
             invite_info = InviteInfoSchema.model_validate_json(invite_info_json)#将json转化为InviteInfoSchema(pydantic模型)
             return invite_info
         return None
+
+    async def set_dingtalk_info(self, dingtalk_info: DingTalkTokenInfoSchema):
+        key = f"{self.dingtalk_prefix}{dingtalk_info.user_id}"
+        await self.set(key, dingtalk_info.model_dump_json(), ex=60*60*24*29)
+
+    async def get_dingtalk_info(self, user_id: str):
+        key = f"{self.dingtalk_prefix}{user_id}"
+        return await self.get(key)
