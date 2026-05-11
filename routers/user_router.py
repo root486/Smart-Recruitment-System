@@ -155,7 +155,7 @@ async def update_status(
 @router.get("/department/list",summary="获取所有部门列表",response_model=DepartmentListRespSchema)
 async def department_list(
         session:AsyncSession = Depends(get_session_instance),
-        _:str=Depends(get_current_user)
+        _:str=Depends(get_current_user)#只有当前登录的用户才可操作
 ):
     async with session.begin():
         department_repo=DepartmentRepo(session)

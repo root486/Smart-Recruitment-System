@@ -58,7 +58,7 @@ class UserRepo(BaseRepo):
         return dingding_user
     #为hr分配部门
     async def assign_department(self, hr_id: str, department_ids: List[str]):
-        hr_stmt = select(UserModel).where(UserModel.id==hr_id).options(selectinload(UserModel.managed_departments))
+        hr_stmt = select(UserModel).where(UserModel.id==hr_id).options(selectinload(UserModel.managed_departments))#这里提前找出UserModel.managed_departments不然会报错
         hr: UserModel = await self.session.scalar(hr_stmt)
         if not hr:
             raise ValueError("该用户不存在！")

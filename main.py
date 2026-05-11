@@ -7,6 +7,7 @@ from settings import settings
 from contextlib import asynccontextmanager
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+from routers.position_router import router as position_router
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -36,7 +37,7 @@ app.add_middleware(
 
 )
 app.include_router(user_router)
-
+app.include_router(position_router)
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
