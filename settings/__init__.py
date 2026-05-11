@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     DINGTALK_CLIENT_SECRET: str = Field(..., validation_alias="DINGTALK_APP_SECRET")
     #前端和后端的域名
     BACKEND_BASE_URL: str = "https://cornmeal-front-decency.ngrok-free.dev"
+    # 简历上传存储路径
+    RESUME_DIR: str = os.path.join(BASE_DIR, "upload")
 
     @computed_field
     @property
