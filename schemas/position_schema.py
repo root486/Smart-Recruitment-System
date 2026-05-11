@@ -31,3 +31,7 @@ class PositionSchema(PositionBaseSchema):
     model_config = ConfigDict(from_attributes=True)# 将orm模型字段读出来赋值给PositionSchema（pydantic）
 class PositionRespSchema(BaseModel):
     position: PositionSchema | None
+
+
+class PositionListRespSchema(BaseModel):
+    positions: List[PositionSchema]
