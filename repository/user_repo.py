@@ -1,8 +1,9 @@
 from . import BaseRepo
 from models.user import UserModel,DingdingUserModel,DepartmentModel
-
+from typing import List
 from sqlalchemy import select,delete
 from typing import Sequence
+from sqlalchemy.orm import selectinload
 class UserRepo(BaseRepo):
     #创建用户
     async def create_user(self,user_data:dict)->UserModel:
@@ -55,6 +56,17 @@ class UserRepo(BaseRepo):
         stmt = select(DingdingUserModel).where(DingdingUserModel.user_id==user_id)
         dingding_user = await self.session.scalar(stmt)
         return dingding_user
+    #为hr分配部门
+    async def assign_department(self, hr_id: str, department_ids: List[str]):
+        hr_stmt = select(UserModel).where(UserModel.id==hr_id).options(selectinload(UserModel.managed_departments))
+        hr: UserModel = await self.session.scalar(hr_stmt)
+        if not hr:
+            raise ValueError("该用户不存在！")
+        department_stmt = select(DepartmentModel).where(DepartmentModel.id.in_(department_ids))
+        departments = (await self.session.scalars(department_stmt)).all()#.all()将结果变为列表
+        hr.managed_departments = departments
+
+
 class DepartmentRepo(BaseRepo):
     #创建部门
     async def create_department(self,department_data:dict)->DepartmentModel:

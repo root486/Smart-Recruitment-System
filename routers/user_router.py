@@ -8,7 +8,7 @@ from schemas.user_schema import (
     UserRegisterSchema,
     UserListRespSchema,
     UserStatusUpdateSchema,
-    DepartmentListRespSchema, DingdingUserRespSchema)
+    DepartmentListRespSchema, DingdingUserRespSchema, AssignDepartmentSchema)
 from dependencies import get_session_instance, get_auth_handler, AuthHandler, get_cache_instance, get_current_user
 from dependencies import get_super_user
 from models import AsyncSession
@@ -259,6 +259,21 @@ async def dingtalk_account(
         user_repo = UserRepo(session)
         dingding_user = await user_repo.get_dingding_user(current_user.id)
     return {"dingding_user": dingding_user}
+
+
+@router.post("/assign/department", summary="分配部门给指定的HR", response_model=ResponseSchema)
+async def assign_department(
+    assign_data: AssignDepartmentSchema,#给哪些hr分配哪些部门
+    session: AsyncSession = Depends(get_session_instance),
+    _: UserModel = Depends(get_super_user),# 必须是超级用户才可操作
+):
+    async with session.begin():
+        user_repo = UserRepo(session)
+        try:
+            await user_repo.assign_department(hr_id=assign_data.hr_id, department_ids=assign_data.department_ids)
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        return ResponseSchema()
 
 
 
