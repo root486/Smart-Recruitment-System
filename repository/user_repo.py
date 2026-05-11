@@ -50,6 +50,11 @@ class UserRepo(BaseRepo):
             dingding_user = DingdingUserModel(**dingding_user_data,user_id=user_id)
             self.session.add(dingding_user)
         return dingding_user
+    #获取钉钉用户
+    async def get_dingding_user(self, user_id: str) -> DingdingUserModel | None:
+        stmt = select(DingdingUserModel).where(DingdingUserModel.user_id==user_id)
+        dingding_user = await self.session.scalar(stmt)
+        return dingding_user
 class DepartmentRepo(BaseRepo):
     #创建部门
     async def create_department(self,department_data:dict)->DepartmentModel:

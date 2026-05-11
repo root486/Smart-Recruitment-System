@@ -8,7 +8,7 @@ from schemas.user_schema import (
     UserRegisterSchema,
     UserListRespSchema,
     UserStatusUpdateSchema,
-    DepartmentListRespSchema)
+    DepartmentListRespSchema, DingdingUserRespSchema)
 from dependencies import get_session_instance, get_auth_handler, AuthHandler, get_cache_instance, get_current_user
 from dependencies import get_super_user
 from models import AsyncSession
@@ -249,6 +249,16 @@ async def dingtalk_authorize_success(
         name="ding_authorize_success.html",  # 明确指定模板名称
         context={"username": nick}  # 上下文字典只包含业务数据
     )
+
+@router.get("/dingtalk/account", summary="获取自己的钉钉账号", response_model=DingdingUserRespSchema)
+async def dingtalk_account(
+    session: AsyncSession = Depends(get_session_instance),
+    current_user: UserModel = Depends(get_current_user),
+):
+    async with session.begin():
+        user_repo = UserRepo(session)
+        dingding_user = await user_repo.get_dingding_user(current_user.id)
+    return {"dingding_user": dingding_user}
 
 
 
