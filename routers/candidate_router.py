@@ -1,6 +1,7 @@
 import os.path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, BackgroundTasks, Query
+from multipart import file_path
 
 from core.cache import HRCache
 from dependencies import get_session_instance, get_current_user, get_cache_instance
@@ -29,7 +30,7 @@ from models.interview import InterviewResultEnum
 from models.interview import InterviewModel
 #from repository.candidate_repo import CandidateAIScoreRepo
 from pathlib import Path
-
+from core.ocr import PaddleOcr
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
 
@@ -95,3 +96,15 @@ async def resume_upload(
         file_name = Path(file_path).name
         resume = await resume_repo.create_resume(file_path=file_name, uploader_id=current_user.id)
     return {"resume": resume}
+
+@router.get("/resume/ocr/test")
+async def resume_ocr_test(
+
+):
+    file_path = os.path.join(settings.RESUME_DIR, "8651671b-2e1b-4879-bf71-6dffc27fad80.pdf")
+    paddle_ocr = PaddleOcr()
+    job_id= await paddle_ocr.create_job(file_path)
+    json_url = await paddle_ocr.poll_for_state(job_id)
+    contents=await paddle_ocr.fetch_parsed_contents(json_url)
+    logger.info(contents)
+    return "success"
