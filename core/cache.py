@@ -1,26 +1,12 @@
-from pydantic import EmailStr,BaseModel
+
 
 from core.single import SingletonMeta
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-from typing import Literal,Any
+
+
+from schemas.cache_schema import InviteInfoSchema, DingTalkTokenInfoSchema, TaskInfoSchema
 from settings import settings
-
-
-class InviteInfoSchema(BaseModel):
-    email:EmailStr
-    department_id:str
-    invite_code:str
-
-class DingTalkTokenInfoSchema(BaseModel):
-    access_token:str
-    refresh_token:str
-    user_id:str
-class TaskInfoSchema(BaseModel):
-    task_id: str
-    status: Literal["pending", "done", "failed"]
-    result:dict[str, Any]| None= None
-    error:str|None = None
 
 
 
