@@ -60,7 +60,7 @@ class CandidateSchema(BaseModel):
     self_evaluation: str | None = Field(None, description="候选人自我评价")
     other_information: str | None = Field(None, description="候选人其他信息")
     skills: str | None = Field(None, description="候选人技能")
-    status: CandidateStatusEnum | str | None = Field(None, description="候选人状态")
+    status:  str | None = Field(None, description="候选人状态")
 
     position: PositionSchema = Field(..., description="候选人申请的职位信息")
     resume: ResumeSchema = Field(..., description="候选人的简历信息")
