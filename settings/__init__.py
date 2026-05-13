@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     MAIL_FROM_NAME: str = "智能招聘"
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
+    # 邮箱机器人配置
+    EMAIL_BOT_IMAP_HOST: str = "imap.qq.com"
+    EMAIL_BOT_SMTP_HOST: str = "smtp.qq.com"
+    EMAIL_BOT_EMAIL: str = Field(..., validation_alias="MAIL_USERNAME")
+    EMAIL_BOT_PASSWORD: str = Field(..., validation_alias="MAIL_PASSWORD")
+
     #钉钉相关配置
     DINGTALK_CLIENT_ID: str = Field(..., validation_alias="DINGTALK_APP_KEY")
     DINGTALK_CLIENT_SECRET: str = Field(..., validation_alias="DINGTALK_APP_SECRET")
