@@ -18,8 +18,8 @@ from tasks import ocr_parse_resume_task
 from schemas import ResponseSchema
 from repository.position_repo import PositionRepo
 from repository.user_repo import UserRepo
-#from tasks import run_candidate_agent
-#from schemas.candidate_schema import CandidateSchema, CandidateListSchema
+from tasks import run_candidate_agent
+from schemas.candidate_schema import CandidateSchema#, CandidateListSchema
 from schemas.position_schema import PositionSchema
 from schemas.user_schema import UserSchema
 from models.candidate import CandidateStatusEnum
@@ -147,3 +147,26 @@ async def resume_ocr_test(
     contents=await paddle_ocr.fetch_parsed_contents(json_url)
     logger.info(contents)
     return "success"
+
+@router.get("/agent/test")
+async def agent_test(
+    background_tasks: BackgroundTasks,
+    session: AsyncSession = Depends(get_session_instance),
+):
+    async with session.begin():
+        candidate_repo = CandidateRepo(session=session)
+        position_repo = PositionRepo(session=session)
+        user_repo = UserRepo(session=session)
+
+        candidate_model = await candidate_repo.get_by_id("CSx49zBcXMAdt8RUqHhZ7k")
+        position_model = await position_repo.get_by_id("ZH7iXvHpC5LxsHSd3rseA6")
+        interviewer_model = await user_repo.get_by_id("nhsvJrhn2AJui9iTg4oDYN")
+
+        background_tasks.add_task(
+            run_candidate_agent,
+            #orm模型变成schema类似
+            candidate=CandidateSchema.model_validate(candidate_model),
+            position=PositionSchema.model_validate(position_model),
+            interviewer=UserSchema.model_validate(interviewer_model),
+        )
+        return {"result": "success"}
