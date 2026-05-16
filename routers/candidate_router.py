@@ -12,7 +12,7 @@ import aiofiles
 from core.pdf import WordToPdfConverter
 from loguru import logger
 from repository.candidate_repo import ResumeRepo,CandidateRepo
-from schemas.candidate_schema import ResumeUploadRespSchema, ResumePaseSchema, ResumeParseTaskRespSchema, ResumeParseTaskInfoRespSchema, CandidateCreateSchema#, CandidateStatusUpdateSchema, CandidateAIScoreRespSchema
+from schemas.candidate_schema import ResumeUploadRespSchema, ResumePaseSchema, ResumeParseTaskRespSchema, ResumeParseTaskInfoRespSchema, CandidateCreateSchema#,CandidateStatusUpdateSchema,CandidateAIScoreRespSchema
 from core.ocr import PaddleOcr
 from tasks import ocr_parse_resume_task
 from schemas import ResponseSchema
@@ -23,10 +23,10 @@ from schemas.candidate_schema import CandidateSchema#, CandidateListSchema
 from schemas.position_schema import PositionSchema
 from schemas.user_schema import UserSchema
 from models.candidate import CandidateStatusEnum
-#from repository.interview_repo import InterviewRepo
+from repository.interview_repo import InterviewRepo
 from models.interview import InterviewResultEnum
 from models.interview import InterviewModel
-#from repository.candidate_repo import CandidateAIScoreRepo
+from repository.candidate_repo import CandidateAIScoreRepo
 from pathlib import Path
 
 

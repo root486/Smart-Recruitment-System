@@ -9,21 +9,29 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from routers.position_router import router as position_router
 from routers.candidate_router import router as candidate_router
+from scheduler import start_email_polling
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    #yield之前的代码是程序运行前执行的
-    redis = aioredis.from_url(
-        f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",#redis连接地址
+    # 1. yield之前的代码，是程序运行前执行的
+    redis_client = aioredis.from_url(
+        f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}",
         encoding="utf-8",
-        decode_responses=True,#解码
+        decode_responses=True,
     )
-    #初始化 FastAPI-Cache(缓存中间件，用于缓存 API 接口的响应结果)
-    redis_backend = RedisBackend(redis)
-    FastAPICache.init(redis_backend, prefix="fastapi-cache")
-    yield# 这里应用开始运行
-    #yield之后的代码是程序即将退出之前执行的
-    await redis.close()
+    cache_backend = RedisBackend(redis_client)
+    FastAPICache.init(cache_backend, prefix="fastapi-cache")
+
+    bot, scheduler =await start_email_polling()
+
+    yield
+    # 2. yield之后的代码，是程序即将退出之前执行的
+    await redis_client.close()
+    if bot.is_connected:
+        await bot.close()
+    if scheduler.running:
+        scheduler.shutdown()
+
 
 app = FastAPI(lifespan=lifespan)
 
