@@ -1,9 +1,10 @@
 from pydantic import BaseModel, Field, ConfigDict
 from schemas.user_schema import UserSchema
 from core.cache import TaskInfoSchema
-from models.candidate import GenderEnum
+from models.candidate import GenderEnum, CandidateStatusEnum
 from schemas.position_schema import PositionSchema
-
+from typing import Optional
+from datetime import datetime
 
 
 
@@ -60,13 +61,18 @@ class CandidateSchema(BaseModel):
     self_evaluation: str | None = Field(None, description="候选人自我评价")
     other_information: str | None = Field(None, description="候选人其他信息")
     skills: str | None = Field(None, description="候选人技能")
-    status:  str | None = Field(None, description="候选人状态")
+    status: CandidateStatusEnum | str | None = Field(None, description="候选人状态")
 
     position: PositionSchema = Field(..., description="候选人申请的职位信息")
     resume: ResumeSchema = Field(..., description="候选人的简历信息")
     creator: UserSchema = Field(..., description="创建该候选人的信息")
 
     model_config = ConfigDict(from_attributes=True)
+class CandidateStatusUpdateSchema(BaseModel):
+    status: CandidateStatusEnum = Field(..., description="候选人状态")
+    interview_time: Optional[datetime] = Field(None, description="面试时间，当状态变更为待面试时必填")
+    rejection_reason: Optional[str] = Field(None, description="未通过原因，当状态变更为面试未通过时必填")
 
-
+class CandidateListSchema(BaseModel):
+    candidates: list[CandidateSchema]
 

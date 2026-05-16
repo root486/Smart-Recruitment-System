@@ -21,7 +21,7 @@ class InterviewRepo(BaseRepo):
     async def update_interview(self, interview_id: str, interview_dict: dict[str, Any]) -> InterviewModel:
         interview = await self.get_by_id(interview_id)
         for key, value in interview_dict.items():
-            setattr(interview, key, value)
-        await self.session.flush()
+            setattr(interview, key, value)#修改属性
+        await self.session.flush()#同步修改到数据库
         await self.session.refresh(interview)
         return interview

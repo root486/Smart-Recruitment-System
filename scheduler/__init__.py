@@ -20,7 +20,7 @@ async def poll_and_process_emails(bot: EmailBot, state: dict):
         logger.info(f"Initialized last_uid={last_uid}")
 
         new_emails = await bot.fetch_since_uid(last_uid)
-        print(new_emails)
+
 
         if not new_emails:
             return
