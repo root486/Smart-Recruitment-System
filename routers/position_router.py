@@ -2,6 +2,7 @@ from fastapi import Depends, APIRouter, HTTPException
 from models.user import UserModel
 from dependencies import get_current_user, get_session_instance
 from models import AsyncSession
+from repository.user_repo import UserRepo
 
 from schemas.position_schema import PositionCreateSchema, PositionRespSchema,PositionListRespSchema
 from repository.position_repo import PositionRepo
@@ -25,18 +26,26 @@ async def create_position(
         return {"position": position}
 
 
-
-
 @router.get('/list', summary="职位列表", response_model=PositionListRespSchema)
 async def get_position_list(
-    page: int = 1,
-    size: int = 10,
-    current_user: UserModel = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session_instance),
+        page: int = 1,
+        size: int = 10,
+        current_user: UserModel = Depends(get_current_user),
+        session: AsyncSession = Depends(get_session_instance),
 ):
     async with session.begin():
         position_repo = PositionRepo(session=session)
-        positions = await position_repo.get_possition_list(current_user, page=page, size=size)
+        user_repo = UserRepo(session=session)
+
+        # 如果是HR用户，重新查询并预加载managed_departments
+        if current_user.is_hr and not current_user.is_superuser:
+            hr_user = await user_repo.get_by_id_with_departments(current_user.id)
+            positions = await position_repo.get_possition_list(hr_user, page=page, size=size)
+        # 如果是普通用户
+        else:
+
+            positions = await position_repo.get_possition_list(current_user, page=page, size=size)
+
         return {"positions": positions}
 
 

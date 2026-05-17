@@ -17,7 +17,7 @@ from schemas.position_schema import PositionSchema
 from schemas.user_schema import UserSchema
 from settings import settings
 import os
-
+from core.ocr import QwenOcr
 #通用的邮件发送函数
 async def send_email_task(message: MessageSchema):
     # 创建邮箱实例
@@ -58,15 +58,18 @@ async def ocr_parse_resume_task(
     cache: HRCache = get_cache_instance()
     await cache.set_task_info(TaskInfoSchema(task_id=task_id, status="pending"))
     try:
-
-        paddle_ocr = PaddleOcr()
-        job_id = await paddle_ocr.create_job(file_path)
-        jsonl_url = await paddle_ocr.poll_for_state(job_id)
-        contents = await paddle_ocr.fetch_parsed_contents(jsonl_url)
-        content = "\n\n".join(contents)
-
+        try:
+            paddle_ocr = PaddleOcr()
+            job_id = await paddle_ocr.create_job(file_path)
+            jsonl_url = await paddle_ocr.poll_for_state(job_id)
+            contents = await paddle_ocr.fetch_parsed_contents(jsonl_url)
+            content = "\n\n".join(contents)
+        except Exception as e:
+            logger.error(f"PaddleOCR识别失败：{e}")
+            qwen_ocr = QwenOcr()
+            content = await qwen_ocr.extract_info_from_resume(file_path)
         # TODO： 将content丢给大模型，让大模型识别其中的内容，比如姓名、性别、年龄、技能、教育经历、工作经历
-        candidate_info: AgentCandidateSchema =await extract_candidate_info(content)
+        candidate_info: AgentCandidateSchema = await extract_candidate_info(content)
         # 2. 设置当前状态为done
         result = {"content": content}
         await cache.set_task_info(TaskInfoSchema(task_id=task_id, status="done", result=candidate_info))

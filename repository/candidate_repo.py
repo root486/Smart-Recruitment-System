@@ -5,11 +5,11 @@ from models.candidate import ResumeModel, CandidateModel, CandidateAIScoreModel
 from sqlalchemy import select,update
 from models import AsyncSessionFactory, AsyncSession
 from models.candidate import CandidateStatusEnum
-
+from datetime import datetime
 import os
 from settings import settings
 from sqlalchemy.orm import selectinload
-
+from sqlalchemy import func,and_
 
 
 
@@ -91,6 +91,21 @@ class CandidateRepo(BaseRepo):
         offset = (page - 1) * size
         stmt = stmt.offset(offset).limit(size).order_by(CandidateModel.created_at.desc())
         return await self.session.scalars(stmt)
+    async def candidate_count(self, start_time: datetime, end_time: datetime):
+        stmt = select(
+            func.date(CandidateModel.created_at),#提取日期时间
+            func.count(CandidateModel.id)
+        ).where(
+            and_(
+                CandidateModel.created_at >= start_time,
+                CandidateModel.created_at <= end_time
+            )
+        ).group_by(
+            func.date(CandidateModel.created_at),
+        ).order_by(
+            func.date(CandidateModel.created_at)
+        )
+        return (await self.session.execute(stmt)).all()
 
 
 class CandidateAIScoreRepo(BaseRepo):

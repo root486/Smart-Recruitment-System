@@ -8,7 +8,7 @@ from schemas.user_schema import (
     UserRegisterSchema,
     UserListRespSchema,
     UserStatusUpdateSchema,
-    DepartmentListRespSchema, DingdingUserRespSchema, AssignDepartmentSchema)
+    DepartmentListRespSchema, DingdingUserRespSchema, AssignDepartmentSchema,HrListRespSchema)
 from dependencies import get_session_instance, get_auth_handler, AuthHandler, get_cache_instance, get_current_user
 from dependencies import get_super_user
 from models import AsyncSession
@@ -121,19 +121,19 @@ async def register(
         )
     return ResponseSchema()
 
-@router.get("/list",summary="获取员工列表",response_model=UserListRespSchema)
+@router.get("/list", summary="获取员工列表", response_model=UserListRespSchema)
 async def user_list(
-        page:int=1,
-        size:int=10,
-        department_id:str|None=None,
-        super_user:UserModel=Depends(get_super_user),#只有超级用户才可以查看员工列表
-        session:AsyncSession = Depends(get_session_instance)
+    page: int = 1,
+    size: int = 10,
+    department_id: str|None = None,
+    _: UserModel = Depends(get_super_user),
+    session: AsyncSession = Depends(get_session_instance),
 ):
     async with session.begin():
-        user_repo=UserRepo(session)
-        users=await user_repo.get_user_list(page=page,size=size,department_id=department_id)
-    return  {"users": users}
-
+        user_repo = UserRepo(session)
+        users = await user_repo.get_user_list(page=page, size=size, department_id=department_id)
+        total = await user_repo.get_user_count(department_id=department_id)
+    return {"users": users, "total": total}
 
 @router.patch("/status/update",summary="修改员工状态",response_model=ResponseSchema)
 async def update_status(
@@ -276,6 +276,15 @@ async def assign_department(
         return ResponseSchema()
 
 
+@router.get("/hr/list", summary="获取HR列表", response_model=HrListRespSchema)
+async def get_hr_list(
+    session: AsyncSession = Depends(get_session_instance),
+    _: UserModel = Depends(get_super_user),
+):
+    async with session.begin():
+        user_repo = UserRepo(session)
+        hrs = await user_repo.get_hr_list()
+        return {"hrs": hrs}
 
 
 

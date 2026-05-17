@@ -47,12 +47,22 @@ class UserRegisterSchema(BaseModel):
     password: str = Field(..., min_length=6, max_length=20, description="密码")
 class UserListRespSchema(BaseModel):
     users:List[UserSchema]
+    total: int
+
 
 class UserStatusUpdateSchema(BaseModel):
     user_id: str = Field(..., description="员工的ID")
     status: UserStatus = Field(..., description="员工的新状态")
+
+
 class DepartmentListRespSchema(BaseModel):
     departments: List[DepartmentSchema]
+
+class HrSchema(UserSchema):
+    managed_departments: List[DepartmentSchema]
+
+class HrListRespSchema(BaseModel):
+    hrs: List[HrSchema]
 
 class DingdingUserSchema(BaseModel):
     id: str = Field(..., description="钉钉账号在自己服务器上的id")

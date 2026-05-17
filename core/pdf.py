@@ -10,10 +10,6 @@ import io
 from PIL import Image
 import pymupdf
 
-# Linux：在Ubuntu上安装libreoffice： sudo apt install -y libreoffice
-
-# windows：要安装Office软件
-
 
 
 class WordToPdfError(RuntimeError):

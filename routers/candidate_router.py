@@ -246,18 +246,6 @@ async def get_candidate_ai_score(
             raise HTTPException(status_code=400, detail="候选人的AI评分不存在！")
         return {"ai_score": ai_score}
 
-@router.get("/resume/ocr/test")
-async def resume_ocr_test(
-
-):
-    file_path = os.path.join(settings.RESUME_DIR, "8651671b-2e1b-4879-bf71-6dffc27fad80.pdf")
-    paddle_ocr = PaddleOcr()
-    job_id= await paddle_ocr.create_job(file_path)
-    json_url = await paddle_ocr.poll_for_state(job_id)
-    contents=await paddle_ocr.fetch_parsed_contents(json_url)
-    logger.info(contents)
-    return "success"
-
 @router.get("/agent/test")
 async def agent_test(
     background_tasks: BackgroundTasks,

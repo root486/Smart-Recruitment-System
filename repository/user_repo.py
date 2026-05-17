@@ -4,18 +4,34 @@ from typing import List
 from sqlalchemy import select,delete
 from typing import Sequence
 from sqlalchemy.orm import selectinload
+from sqlalchemy import func
 class UserRepo(BaseRepo):
     #创建用户
     async def create_user(self,user_data:dict)->UserModel:
         user =UserModel(**user_data)
         self.session.add(user)
         return user
+
+
+
     #通过id查找用户
-    async def get_by_id(self,user_id:str)->UserModel|None:
-        user=await self.session.scalar(
-            select(UserModel).where(UserModel.id==user_id)
+    async def get_by_id(self, user_id: str) -> UserModel | None:
+        user = await self.session.scalar(
+            select(UserModel).where(UserModel.id == user_id)
         )
         return user
+
+    #通过id查找用户并预加载管理的部门（用于HR用户）
+    async def get_by_id_with_departments(self, user_id: str) -> UserModel | None:
+        user = await self.session.scalar(
+            select(UserModel)
+            .where(UserModel.id == user_id)
+            .options(selectinload(UserModel.managed_departments))
+        )
+        return user
+
+
+
     #通过email查找用户
     async def get_by_email(self,email:str)->UserModel|None:
         user=await self.session.scalar(
@@ -34,6 +50,20 @@ class UserRepo(BaseRepo):
         stmt = stmt.limit(limit).offset(offset).order_by(UserModel.created_at.desc())
         users = await self.session.scalars(stmt)
         return users.all()
+    async def get_hr_list(self):
+        stmt = select(UserModel).where(UserModel.is_hr == True).options(selectinload(UserModel.managed_departments))
+        hrs = await self.session.scalars(stmt)
+        return hrs.all()
+
+    async def get_user_count(self, department_id: str|None = None):
+        stmt = select(func.count(UserModel.id))
+        if department_id:
+            stmt = stmt.where(UserModel.department_id == department_id)
+        total = await self.session.scalar(stmt)
+        return total
+
+
+
     # 获取钉钉用户并存储到数据库当中
     async def set_dingding_user(self,user_id:str,dingding_user_data:dict)->DingdingUserModel:
         user = await self.get_by_id(user_id)

@@ -10,6 +10,25 @@ from fastapi_cache.backends.redis import RedisBackend
 from routers.position_router import router as position_router
 from routers.candidate_router import router as candidate_router
 from scheduler import start_email_polling
+from routers.dashboard_router import router as dashboard_router
+from routers.media_router import router as media_router
+
+
+from loguru import logger
+
+logger.remove()
+
+logger.add(
+    "log/app.log",
+    rotation="10 MB",        # 每个文件最大 10MB
+    retention="7 days",      # 保留最近 7 天的日志
+    compression="zip",       # 压缩旧日志为 zip 文件
+    level="INFO",            # 最低记录级别
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}",
+    encoding="utf-8",
+    enqueue=True,#先存储到队列中，然后异步写入文件
+)
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -49,6 +68,11 @@ app.include_router(user_router)
 app.include_router(position_router)
 
 app.include_router(candidate_router)
+app.include_router(dashboard_router)
+
+if settings.DEBUG:
+    app.include_router(media_router)
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
