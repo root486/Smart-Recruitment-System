@@ -59,8 +59,7 @@ app.include_router(position_router)
 app.include_router(candidate_router)
 app.include_router(dashboard_router)
 
-if settings.DEBUG:
-    app.include_router(media_router)
+app.include_router(media_router)
 
 @app.get("/")
 async def root():
