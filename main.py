@@ -14,7 +14,7 @@ from routers.dashboard_router import router as dashboard_router
 from routers.media_router import router as media_router
 
 
-from loguru import logger
+
 
 
 
