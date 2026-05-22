@@ -63,7 +63,7 @@ async def start_email_polling():
 
     bot = EmailBot(email_settings)
     await bot.connect()
-
+    #下面这个方法add_job是添加定时任务
     scheduler.add_job(poll_and_process_emails, "interval", seconds=15, args=[bot, state], max_instances=1)
     scheduler.start()
     logger.info("Scheduler started, polling inbox...")

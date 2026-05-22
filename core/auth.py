@@ -15,15 +15,15 @@ class SingletonMeta(type):
     """
     This is a thread-safe implementation of Singleton.
     """
-    _instances = {}
-    _lock: Lock = Lock()
+    _instances = {}#存储所有单例类的唯一实例
+    _lock: Lock = Lock()#创建锁对象
 
     def __call__(cls, *args, **kwargs):
-        with cls._lock:
-            if cls not in cls._instances:
-                instance = super().__call__(*args, **kwargs)
-                cls._instances[cls] = instance
-        return cls._instances[cls]
+        with cls._lock:#加锁，同一时间只有一个线程能进入
+            if cls not in cls._instances:#检查 _instances 字典里有没有这个类的实例
+                instance = super().__call__(*args, **kwargs)#如果没有，创建类的实例
+                cls._instances[cls] = instance#把创建好的实例存进字典
+        return cls._instances[cls]#返回实例
 
 
 class TokenTypeEnum(Enum):
@@ -39,8 +39,8 @@ class AuthHandler(metaclass=SingletonMeta):
 
     def _encode_token(self, iss: str, type: TokenTypeEnum):
         payload = dict(
-            iss=iss,
-            sub=str(type.value)
+            iss=iss,# ← 存用户 ID，后续解码就知道是谁
+            sub=str(type.value)# ← 存 token 类型（"1"=access，"2"=refresh）
         )
         to_encode = payload.copy()
         if type == TokenTypeEnum.ACCESS_TOKEN:

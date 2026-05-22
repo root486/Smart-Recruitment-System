@@ -431,6 +431,16 @@ class CandidateProcessAgent:
         self._checkpointer_conn = AsyncPostgresSaver.from_conn_string(settings.DATABASE_AGENT_URL)
         self._checkpointer = await self._checkpointer_conn.__aenter__()#建立数据库链接
         await self._checkpointer.setup()#创建表
+        #这其实是两个async with ... as ..: 的嵌套但是因为嵌套了，所以
+        # 嵌套在里面的若结束则会自动关闭无法走完流程，__aenter__()，__aexit__（）
+        #这两个方法代表被嵌套在里面的async with的手动开始和手动结束
+        # 等价于
+        # async with AsyncPostgresSaver.from_conn_string(url) as cp:
+        #     # ↑ Python 自动调了 .__aenter__() ← 建立连接
+        #     await cp.setup()
+        #     # 业务代码...
+        # # ↑ Python 自动调了 .__aexit__() ← 关闭连接
+
         return self
     #退出上下文时执行
     async def __aexit__(self, exc_type, exc_val, exc_tb):

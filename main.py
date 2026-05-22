@@ -30,7 +30,7 @@ async def lifespan(_: FastAPI):
     cache_backend = RedisBackend(redis_client)
     FastAPICache.init(cache_backend, prefix="fastapi-cache")
 
-    bot, scheduler =await start_email_polling()
+    bot, scheduler =await start_email_polling()#返回这些是用于退出时清理（关闭 IMAP 连接、关闭调度器）。
 
     yield
     # 2. yield之后的代码，是程序即将退出之前执行的
