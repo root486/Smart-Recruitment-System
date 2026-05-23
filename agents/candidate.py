@@ -99,7 +99,6 @@ async def score_for_candidate(
     )
 
     # RAG: 检索与当前职位相关的知识库片段
-    await ensure_ingested()
     rag_query = f"{position.title}\n{position.description or ''}\n{position.requirements}"
     reference_knowledge = await retrieve_knowledge(rag_query, top_k=5)
 
@@ -331,13 +330,16 @@ async def confirm_interview_time(
                     "candidate_id": candidate.id,
                     "interviewer_id": interviewer.id,
                 })
+                logger.info(f"面试记录创建成功 candidate_id={candidate.id}")
                 # 4. 在数据库中修改候选人的状态为待面试
                 candidate_repo = CandidateRepo(session)
                 await candidate_repo.update_candidate_status(
                     candidate_id=candidate.id,
                     status=CandidateStatusEnum.WAITING_FOR_INTERVIEW,
                 )
+                logger.info(f"候选人状态更新成功 candidate_id={candidate.id}")
     except Exception as e:
+        logger.error(f"confirm_interview_time 数据库失败 candidate_id={candidate.id}: {e}")
         return f"在系统中创建面试预约记录和候选人状态修改失败！{e}"
 
     return f"""

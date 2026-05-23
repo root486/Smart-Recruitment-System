@@ -10,7 +10,7 @@ qwen_llm = ChatOpenAI(
 )
 
 deepseek_llm = ChatOpenAI(
-    model="deepseek-v3.2",
+    model="deepseek-v3.1",
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     api_key=api_key
 )

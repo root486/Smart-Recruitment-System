@@ -1,3 +1,5 @@
+from routers.media_router import router as media_router
+from core.rag import ensure_ingested
 from fastapi import FastAPI
 
 from routers.user_router import router as user_router
@@ -11,13 +13,6 @@ from routers.position_router import router as position_router
 from routers.candidate_router import router as candidate_router
 from scheduler import start_email_polling
 from routers.dashboard_router import router as dashboard_router
-from routers.media_router import router as media_router
-
-
-
-
-
-
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -30,7 +25,10 @@ async def lifespan(_: FastAPI):
     cache_backend = RedisBackend(redis_client)
     FastAPICache.init(cache_backend, prefix="fastapi-cache")
 
-    bot, scheduler =await start_email_polling()#返回这些是用于退出时清理（关闭 IMAP 连接、关闭调度器）。
+    bot, scheduler =await start_email_polling()
+
+    # RAG 知识库：启动时一次性入库，后续评分不再碰 ChromaDB 初始化
+    await ensure_ingested()
 
     yield
     # 2. yield之后的代码，是程序即将退出之前执行的
