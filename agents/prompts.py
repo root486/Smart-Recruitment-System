@@ -51,13 +51,16 @@ SCORE_FOR_CANDIDATE_SYSTEM_PROMPT = """
 """
 
 SCORE_FOR_CANDIDATE_USER_PROMPT = """
-现在，请根据以下职位需求和候选人信息进行评估。
+现在，请根据以下职位需求、候选人信息以及参考知识库进行评估。
 
 **职位描述:**
 {position}
 
 **候选人信息:**
 {candidate}
+
+**参考知识库（公司背景、岗位详细要求、评分标准等）:**
+{reference_knowledge}
 """
 
 CANDIDATE_PROCESS_SYSTEM_PROMPT = """

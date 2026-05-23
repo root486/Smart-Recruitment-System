@@ -35,6 +35,7 @@ from datetime import datetime,timedelta
 from typing import Any
 from core.email_bot import EmailBot,EmailBotSettings
 from models.interview import InterviewResultEnum
+from core.rag import ensure_ingested, retrieve_knowledge
 
 async def get_dingtalk_access_token(user_id: str) -> str:
     dingding_http = DingTalkHttp()
@@ -96,10 +97,17 @@ async def score_for_candidate(
         middleware=[ModelFallbackMiddleware(first_model=deepseek_llm)],
         response_format=AgentCandidateScoreSchema
     )
+
+    # RAG: 检索与当前职位相关的知识库片段
+    await ensure_ingested()
+    rag_query = f"{position.title}\n{position.description or ''}\n{position.requirements}"
+    reference_knowledge = await retrieve_knowledge(rag_query, top_k=5)
+
     user_prompt_template = PromptTemplate.from_template(SCORE_FOR_CANDIDATE_USER_PROMPT)
     user_prompt = user_prompt_template.invoke({
         "candidate": candidate.model_dump_json(),
-        "position": position.model_dump_json()
+        "position": position.model_dump_json(),
+        "reference_knowledge": reference_knowledge or "暂无额外参考知识",
     })
     response = await score_agent.ainvoke({
         "messages": [{

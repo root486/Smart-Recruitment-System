@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     BACKEND_BASE_URL: str = "https://cornmeal-front-decency.ngrok-free.dev"
     # 简历上传存储路径
     RESUME_DIR: str = os.path.join(BASE_DIR, "upload")
+    # RAG 知识库文件目录（手动放入 markdown 文件）
+    DATA_DIR: str = os.path.join(BASE_DIR, "data")
+    # ChromaDB 向量数据库持久化路径
+    CHROMA_DB_PATH: str = os.path.join(BASE_DIR, "chroma_db")
     # Paddle OCR Access Token
     PADDLE_OCR_ACCESS_TOKEN: str = Field(..., validation_alias="PADDLE_OCR_ACCESS_TOKEN")
 
