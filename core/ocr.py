@@ -19,8 +19,7 @@ from langchain_openai import ChatOpenAI
 
 qwen_ocr_llm = ChatOpenAI(
     api_key=settings.DASHSCOPE_API_KEY,
-    # model="qwen-vl-ocr-2025-11-20",
-    model="qwen-vl-ocr",
+    model="qwen-vl-max",
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
     temperature=0.1
 )

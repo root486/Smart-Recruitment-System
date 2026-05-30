@@ -2,7 +2,7 @@
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
     <data-source source="LOCAL" name="chroma" uuid="b3cb5186-7d49-4e06-bf73-c957065f188d">
-      <driver-ref>sqlite.xerial</driver-ref>
+      <driver-ref>f192fe96-1d51-4858-9ce2-950f84d28a91</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:D:\hr-backend\chroma_db\chroma.sqlite3</jdbc-url>

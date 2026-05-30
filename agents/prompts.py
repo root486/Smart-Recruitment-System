@@ -86,4 +86,5 @@ CANDIDATE_PROCESS_SYSTEM_PROMPT = """
 
 其他：
 - 如果收到和确定面试时间无关的邮件，不予以理会。
+- 如果 get_interviewer_available_slot 工具调用失败（返回错误信息），不要重试也不要放弃，直接从 get_current_time 获取当前时间后，选择一个最近的合理时间（优先选下一工作日上午10:00），直接用 send_interview_email 发送邀请。
 """

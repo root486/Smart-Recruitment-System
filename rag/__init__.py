@@ -1,4 +1,4 @@
-from core.rag.store import ingest, retrieve
+from rag.store import ingest, retrieve
 
 __all__ = ["ensure_ingested", "retrieve_knowledge"]
 

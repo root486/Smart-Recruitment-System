@@ -8,6 +8,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class Settings(BaseSettings):
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
     # DB
     DB_USERNAME: str = "postgres"
     DB_PASSWORD: str = "root"
@@ -44,19 +46,22 @@ class Settings(BaseSettings):
     EMAIL_BOT_PASSWORD: str = Field(..., validation_alias="MAIL_PASSWORD")
     # 阿里云百炼平台的API_KEY
     DASHSCOPE_API_KEY: str = Field(..., validation_alias="DASHSCOPE_API_KEY")
-    #钉钉相关配置
-    DINGTALK_CLIENT_ID: str = Field(..., validation_alias="DINGTALK_APP_KEY")
-    DINGTALK_CLIENT_SECRET: str = Field(..., validation_alias="DINGTALK_APP_SECRET")
-    #前端和后端的域名
-    BACKEND_BASE_URL: str = "https://cornmeal-front-decency.ngrok-free.dev"
+    # DeepSeek 官方直连 API Key
+    DEEPSEEK_API_KEY: str = Field(..., validation_alias="DEEPSEEK_API_KEY")
+    #钉钉相关配置（可选，不填不影响核心流程）
+    DINGTALK_CLIENT_ID: str = Field("", validation_alias="DINGTALK_APP_KEY")
+    DINGTALK_CLIENT_SECRET: str = Field("", validation_alias="DINGTALK_APP_SECRET")
+    #钉钉回调域名（可选，用ngrok时在.env里覆盖）
+    BACKEND_BASE_URL: str = Field("https://cornmeal-front-decency.ngrok-free.dev", validation_alias="BACKEND_BASE_URL")
+
     # 简历上传存储路径
     RESUME_DIR: str = os.path.join(BASE_DIR, "upload")
     # RAG 知识库文件目录（手动放入 markdown 文件）
     DATA_DIR: str = os.path.join(BASE_DIR, "data")
     # ChromaDB 向量数据库持久化路径
     CHROMA_DB_PATH: str = os.path.join(BASE_DIR, "chroma_db")
-    # Paddle OCR Access Token
-    PADDLE_OCR_ACCESS_TOKEN: str = Field(..., validation_alias="PADDLE_OCR_ACCESS_TOKEN")
+    # Paddle OCR Access Token（可选，不填自动用千问OCR）
+    PADDLE_OCR_ACCESS_TOKEN: str = Field("", validation_alias="PADDLE_OCR_ACCESS_TOKEN")
 
 
 

@@ -83,17 +83,27 @@ async def run_candidate_agent(
     position: PositionSchema,
     interviewer: UserSchema
 ):
-    async with CandidateProcessAgent(
-        candidate=candidate,
-        position=position,
-        interviewer=interviewer
-    ) as agent:
-        response = await agent.ainvoke(
-            messages = [{
-                "role": "user",
-                "content": f"候选人信息：{candidate.model_dump_json()}，职位信息：{position.model_dump_json()}"
-            }],
-            thread_id=candidate.email
-        )
-        print(response)
-        return response
+    logger.info(f"Agent 开始执行 candidate={candidate.name} email={candidate.email}")
+    try:
+        logger.info(f"Agent 创建中...")
+        async with CandidateProcessAgent(
+            candidate=candidate,
+            position=position,
+            interviewer=interviewer
+        ) as agent:
+            logger.info(f"Agent 已创建，开始调用 ainvoke...")
+            response = await agent.ainvoke(
+                messages = [{
+                    "role": "user",
+                    "content": f"候选人信息：{candidate.model_dump_json()}，职位信息：{position.model_dump_json()}"
+                }],
+                thread_id=candidate.email
+            )
+            # msgs = response.get("messages", [])
+            # for i, m in enumerate(msgs):
+            #     msg_type = type(m).__name__
+            #     logger.debug(f"  [{i}] {msg_type}: {str(m)[:200]}")
+            logger.info(f"Agent 执行完成 candidate={candidate.name} messages={len(response.get('messages', []))}")
+            return response
+    except Exception as e:
+        logger.exception(f"Agent 执行失败 candidate={candidate.name}: {e}")

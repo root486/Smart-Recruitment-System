@@ -1,5 +1,5 @@
 from routers.media_router import router as media_router
-from core.rag import ensure_ingested
+from rag import ensure_ingested
 from fastapi import FastAPI
 
 from routers.user_router import router as user_router

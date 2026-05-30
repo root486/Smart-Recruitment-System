@@ -11,8 +11,8 @@ from schemas.user_schema import UserSchema
 from langgraph.graph.message import BaseMessage
 
 from utils.available_time import find_available_slot
-from utils.iso8601 import iso8601_to_datetime_beijing
-from .llms import qwen_llm,deepseek_llm
+from utils.iso8601 import iso8601_to_datetime_beijing, datetime_to_iso8601_beijing
+from .llms import qwen_llm, deepseek_direct_llm
 from .prompts import CANDIDATE_PROCESS_SYSTEM_PROMPT,SCORE_FOR_CANDIDATE_SYSTEM_PROMPT,SCORE_FOR_CANDIDATE_USER_PROMPT
 from langchain.agents.middleware import ModelFallbackMiddleware,SummarizationMiddleware
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -35,7 +35,7 @@ from datetime import datetime,timedelta
 from typing import Any
 from core.email_bot import EmailBot,EmailBotSettings
 from models.interview import InterviewResultEnum
-from core.rag import ensure_ingested, retrieve_knowledge
+from rag import ensure_ingested, retrieve_knowledge
 
 async def get_dingtalk_access_token(user_id: str) -> str:
     dingding_http = DingTalkHttp()
@@ -92,9 +92,9 @@ async def score_for_candidate(
     position: PositionSchema = runtime.state['position']
 
     score_agent = create_agent(
-        model=qwen_llm,
+        model=deepseek_direct_llm,
         system_prompt=SCORE_FOR_CANDIDATE_SYSTEM_PROMPT,
-        middleware=[ModelFallbackMiddleware(first_model=deepseek_llm)],
+        middleware=[ModelFallbackMiddleware(first_model=qwen_llm)],
         response_format=AgentCandidateScoreSchema
     )
 
@@ -161,7 +161,7 @@ async def get_interviewer_available_slot(
 
     try:
         # 2. 获取access_token
-        access_token: str = await get_dingtalk_access_token(interviewer.user_id)
+        access_token: str = await get_dingtalk_access_token(interviewer.id)
     except Exception as e:
         logger.error(e)
         return f"获取面试官可用时间失败：{e}"
@@ -189,7 +189,7 @@ async def get_interviewer_available_slot(
         if len(available_slots) == 0:
             return f"获取面试官可用时间失败：7天内没有空闲时间！"
         #将datatime对象转换为ISO8601时间格式
-        available_times = [(iso8601_to_datetime_beijing(slot[0]), iso8601_to_datetime_beijing(slot[1])) for slot in available_slots]
+        available_times = [(datetime_to_iso8601_beijing(slot[0]), datetime_to_iso8601_beijing(slot[1])) for slot in available_slots]
         #返回json格式的字符串给大模型看
         return f"找到面试官可用的时间：{json.dumps(available_times)}"
     except Exception as e:
@@ -407,13 +407,12 @@ class CandidateProcessAgent:
     async def ainvoke(self, messages: list[BaseMessage], thread_id: str):
         assert self._checkpointer is not None
         agent = create_agent(
-            model=deepseek_llm,
+            model=deepseek_direct_llm,
             system_prompt=CANDIDATE_PROCESS_SYSTEM_PROMPT,
             state_schema=CandidateAgentState,
             middleware=[
-                ModelFallbackMiddleware(first_model=deepseek_llm),
                 SummarizationMiddleware(
-                    model=deepseek_llm,
+                    model=deepseek_direct_llm,
                     trigger=("tokens", 50000),
                     keep=("tokens", 10000)
                 )
