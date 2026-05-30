@@ -8,7 +8,7 @@ EMBEDDING_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/embeddings"
 async def embed_documents(texts: list[str]) -> list[list[float]]:
     """
     批量生成文本向量（异步）。
-    直接调 DashScope compatible API，避免 langchain_openai 兼容问题。
+    直接调 DashScope compatible API。
     """
     headers = {
         "Authorization": f"Bearer {settings.DASHSCOPE_API_KEY}",

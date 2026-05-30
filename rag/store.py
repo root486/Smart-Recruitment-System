@@ -9,7 +9,7 @@ from loguru import logger
 from rank_bm25 import BM25Okapi
 from settings import settings
 from rag.embedder import embed_documents, embed_query
-from rag.loader import load_and_chunk
+from rag.loader import load_and_chunk, load_and_chunk_with_context
 from rag.reranker import dashscope_rerank
 
 COLLECTION_NAME = "hr_knowledge_base"
@@ -151,8 +151,8 @@ async def ingest(force: bool = False) -> int:
         _bm25_texts = []
         _remove_bm25_state()
 
-    # 分块 + 向量化 + 写入
-    chunks = load_and_chunk(settings.DATA_DIR)
+    # 分块 + Contextual Retrieval 上下文注入 + 向量化 + 写入
+    chunks = await load_and_chunk_with_context(settings.DATA_DIR)
     if not chunks:
         logger.info("RAG: data/ 目录为空，跳过入库")
         return 0

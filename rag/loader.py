@@ -2,6 +2,114 @@ import hashlib
 import re
 from pathlib import Path
 
+import httpx
+from loguru import logger
+from settings import settings
+
+# ── Contextual Retrieval 配置 ──
+CONTEXT_LLM_MODEL = "qwen-plus"  # 低成本模型，¥0.0015/千token，专用于离线上下文生成
+CONTEXT_LLM_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+CONTEXT_PROMPT_TEMPLATE = """<document>
+{full_document}
+</document>
+
+Here is the chunk we want to situate within the whole document:
+
+<chunk>
+{chunk_content}
+</chunk>
+
+Please give a short, succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else. Use Chinese."""
+
+
+async def _generate_chunk_context(
+    full_document: str,
+    chunk_content: str,
+) -> str:
+    """
+    调用 LLM 为单个 chunk 生成上下文描述。
+    使用 qwen-plus，一次调用生成一个 chunk 的上下文。
+    """
+    prompt = CONTEXT_PROMPT_TEMPLATE.format(
+        full_document=full_document,
+        chunk_content=chunk_content,
+    )
+    headers = {
+        "Authorization": f"Bearer {settings.DASHSCOPE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": CONTEXT_LLM_MODEL,
+        "messages": [
+            {"role": "user", "content": prompt},
+        ],
+        "max_tokens": 200,
+        "temperature": 0.0,
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                CONTEXT_LLM_URL,
+                json=payload,
+                headers=headers,
+                timeout=30.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            context = data["choices"][0]["message"]["content"].strip()
+            return context
+    except Exception as e:
+        logger.warning(f"生成 chunk 上下文失败，使用空上下文: {e}")
+        return ""
+
+
+async def contextualize_chunks(
+    chunks: list[dict],
+    doc_full_texts: dict[str, str],
+) -> list[dict]:
+    """
+    Contextual Retrieval：为每个 chunk 注入 LLM 生成的上下文前缀。
+    
+    这是 Anthropic 2024-2025 年提出的核心优化：
+    - 入库前用 LLM 为每个 chunk 生成 50-100 字的"这段内容在哪、讲什么"的描述
+    - 将描述拼到 chunk 前面，再做 Embedding 和 BM25 索引
+    - 同时改善稠密检索和稀疏检索两条通路
+    
+    参数:
+        chunks: load_and_chunk() 的输出
+        doc_full_texts: {"source_path": "完整文档内容", ...}
+    
+    返回:
+        注入上下文后的 chunks（content 字段前增加了上下文描述）
+    """
+    # 按 source 分组，批量处理
+    by_source: dict[str, list[int]] = {}
+    for i, ch in enumerate(chunks):
+        by_source.setdefault(ch["source"], []).append(i)
+
+    total = len(chunks)
+    processed = 0
+
+    for source, indices in by_source.items():
+        full_text = doc_full_texts.get(source, "")
+        if not full_text:
+            continue
+
+        for idx in indices:
+            chunk = chunks[idx]
+            context = await _generate_chunk_context(full_text, chunk["content"])
+            if context:
+                # 格式：[上下文: ...]\n\n<原始内容>
+                chunk["content"] = f"[上下文: {context}]\n\n{chunk['content']}"
+                chunk["contextualized"] = True
+                chunk["context_description"] = context
+            processed += 1
+            if processed % 10 == 0:
+                logger.debug(f"Contextual Retrieval 进度: {processed}/{total}")
+
+    logger.info(f"Contextual Retrieval 完成: {processed}/{total} 个 chunk 已注入上下文")
+    return chunks
+
 
 def load_markdown_files(data_dir: str) -> list[dict]:
     """
@@ -192,13 +300,64 @@ def _make_chunk_id(source: str, chunk_index: int, content_preview: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
 
 
+def _load_doc_full_texts(data_dir: str) -> dict[str, str]:
+    """
+    加载所有文档的完整文本，key 为相对路径（source）。
+    供 Contextual Retrieval 使用。
+    """
+    docs = load_markdown_files(data_dir)
+    return {d["source"]: d["content"] for d in docs}
+
+
+async def load_and_chunk_with_context(
+    data_dir: str,
+    chunk_size: int = 800,
+    chunk_overlap: int = 150,
+    enable_contextual: bool = True,
+) -> list[dict]:
+    """
+    加载 + 标题感知分块 + Contextual Retrieval 上下文注入。
+    
+
+    1. 标题感知切分
+    2. LLM 为每个 chunk 生成上下文前缀
+    3. 上下文前缀拼入 chunk → Embedding + BM25 双通路受益
+    
+
+    
+    参数:
+        data_dir: 知识库目录
+        chunk_size: 分块大小（字符）
+        chunk_overlap: 重叠大小（字符）
+        enable_contextual: 是否启用上下文注入（关闭则退化为 load_and_chunk）
+    
+    返回: [{"content": str, "source": str, "title": str, 
+            "chunk_index": int, "chunk_id": str, 
+            "contextualized": bool, "context_description": str}, ...]
+    """
+    # 阶段1：加载文档完整文本（供上下文生成用）
+    doc_full_texts = _load_doc_full_texts(data_dir)
+
+    # 阶段2：标题感知切分（同步，保留现有逻辑）
+    chunks = load_and_chunk(data_dir, chunk_size, chunk_overlap)
+    if not chunks:
+        return []
+
+    # 阶段3：Contextual Retrieval 上下文注入（异步，LLM 调用）
+    if enable_contextual:
+        chunks = await contextualize_chunks(chunks, doc_full_texts)
+
+    return chunks
+
+
 def load_and_chunk(
     data_dir: str,
     chunk_size: int = 800,
     chunk_overlap: int = 150,
 ) -> list[dict]:
     """
-    加载 + 标题感知分块，一步完成。
+    加载 + 标题感知分块，一步完成（同步版，向后兼容）。
+    如需 Contextual Retrieval 增强，请使用 load_and_chunk_with_context()。
     返回: [{"content": str, "source": str, "title": str, "chunk_index": int, "chunk_id": str}, ...]
     """
     docs = load_markdown_files(data_dir)
