@@ -17,6 +17,24 @@
 | 定时任务 | APScheduler（邮件轮询） |
 | 第三方集成 | 钉钉 OAuth / 日程 / QQ 邮箱 |
 
+## 关键创新点
+
+**混合检索落地**：稠密向量 + jieba/rank-bm25 BM25 稀疏检索，RRF 融合排序，兼顾语义理解与精确词匹配。
+
+**DashScope 精排接入**：Hybrid/Dense 召回后调用 gte-rerank-v2 API 级重排序，返回 relevance_score。
+
+**双向降级**：BM25 索引构建失败 → 自动降级为纯稠密检索；Rerank API 调用失败 → 回退 RRF 融合结果，提升稳定性。
+
+**RAG + Agent 深度融合**：评分 Agent 先走混合检索从知识库召回相关片段，注入提示词后再打分，避免幻觉评分。
+
+**LangChain Agent 多工具协同**：`create_agent` 编排六个工具链——简历评分、RAG 知识检索、钉钉闲忙查询、面试邮件发送、时间协商确认、钉钉日程创建，端到端自动化。
+
+**LangGraph Checkpoint 状态持久化**：候选人状态与对话历史通过 AsyncPostgresSaver 落 PostgreSQL，按 `candidate.id` 隔离会话。
+
+**OCR 双引擎降级**：简历解析优先走 PaddleOCR 高精度识别，失败自动切换千问 VL OCR 兜底，任意格式 PDF/图片通用。
+
+**邮件机器人闭环**：APScheduler 定时轮询 IMAP，候选人回复后 Agent 解析意图、更新状态、触发下一阶段。
+
 ## 功能模块
 
 | 模块 | 说明 |
