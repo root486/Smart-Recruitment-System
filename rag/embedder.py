@@ -37,3 +37,15 @@ async def embed_query(text: str) -> list[float]:
     """
     vectors = await embed_documents([text])
     return vectors[0]
+
+
+def embed_documents_sync(texts: list[str]) -> list[list[float]]:
+    """
+    批量生成文本向量（同步封装，用于入库等非异步上下文）。
+    """
+    import asyncio
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(embed_documents(texts))
+    raise RuntimeError("embed_documents_sync 不能在已有事件循环中调用，请使用 await embed_documents()")
