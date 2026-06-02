@@ -21,6 +21,7 @@ CHILD_PARENT_FILE = "child_parent_map.pkl"
 
 RRF_K = 60
 RECALL_MULTIPLIER = 4
+AUTO_MERGE_THRESHOLD = 2  # 同一父块下 ≥N 个子块命中才展开为父块，否则保留子块
 
 
 # ── 运行时全局状态 ──

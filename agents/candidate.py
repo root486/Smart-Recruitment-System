@@ -1,4 +1,5 @@
 import json
+import re
 from http.client import responses
 
 from langchain.agents import create_agent
@@ -98,9 +99,18 @@ async def score_for_candidate(
         response_format=AgentCandidateScoreSchema
     )
 
-    # RAG: 检索与当前职位相关的知识库片段
-    rag_query = f"{position.title}\n{position.description or ''}\n{position.requirements}"
-    reference_knowledge = await retrieve_knowledge(rag_query, top_k=5)
+    # RAG: 从职位要求中拆出关键词，逐条精准检索后合并去重（不改 prompt）
+    requirements = position.requirements or ""
+    items = [item.strip() for item in re.split(r"[，,；;。、\n]+", requirements) if len(item.strip()) > 4]
+    keywords = items[:8] if items else [position.title]
+
+    all_docs: set[str] = set()
+    for kw in keywords:
+        result = await retrieve_knowledge(f"{position.title} {kw}", top_k=2)
+        if result:
+            all_docs.update(result.split("\n\n---\n\n"))
+
+    reference_knowledge = "\n\n---\n\n".join(all_docs) if all_docs else "暂无额外参考知识"
 
     user_prompt_template = PromptTemplate.from_template(SCORE_FOR_CANDIDATE_USER_PROMPT)
     user_prompt = user_prompt_template.invoke({

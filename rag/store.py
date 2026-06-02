@@ -9,6 +9,7 @@ from rag.state import (
     COLLECTION_NAME,
     RRF_K,
     RECALL_MULTIPLIER,
+    AUTO_MERGE_THRESHOLD,
     compute_file_hashes,
     save_file_hashes,
     load_file_hashes,
@@ -275,20 +276,38 @@ async def retrieve(query: str, top_k: int = 5) -> list[str]:
             logger.debug("Rerank 失败，降级为 RRF 融合结果")
     merged = merged[:top_k]
 
-    # 子块 → 父块展开
+    # 子块 → 父块展开（阈值条件：同一父块下 ≥ AUTO_MERGE_THRESHOLD 个子块命中才展开）
     parent_store = get_parent_store()
     child_to_parent = get_child_to_parent()
     expanded = []
     seen = set()
     if parent_store and child_to_parent:
+        # 按父块分组统计命中数
+        parent_hits: dict[str, list[str]] = {}
+        unmatched = []
         for text in merged:
             parent_id = child_to_parent.get(text)
             if parent_id and parent_id in parent_store:
+                parent_hits.setdefault(parent_id, []).append(text)
+            else:
+                unmatched.append(text)
+
+        # 阈值判断：≥阈值 → 展开父块；<阈值 → 保留子块
+        for parent_id, children in parent_hits.items():
+            if len(children) >= AUTO_MERGE_THRESHOLD:
                 parent_text = parent_store[parent_id]
                 if parent_text not in seen:
                     seen.add(parent_text)
                     expanded.append(parent_text)
-            elif text not in seen:
+                logger.debug(f"Auto-merge: 父块 {parent_id} 命中 {len(children)} 子块 → 展开")
+            else:
+                for child_text in children:
+                    if child_text not in seen:
+                        seen.add(child_text)
+                        expanded.append(child_text)
+
+        for text in unmatched:
+            if text not in seen:
                 seen.add(text)
                 expanded.append(text)
     else:
