@@ -99,7 +99,7 @@ async def score_for_candidate(
         response_format=AgentCandidateScoreSchema
     )
 
-    # RAG: 从职位要求中拆出关键词，逐条精准检索后合并去重（不改 prompt）
+    # RAG: 从职位要求中拆出关键词，逐条精准检索后合并去重
     requirements = position.requirements or ""
     items = [item.strip() for item in re.split(r"[，,；;。、\n]+", requirements) if len(item.strip()) > 4]
     keywords = items[:8] if items else [position.title]
